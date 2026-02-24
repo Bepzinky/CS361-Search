@@ -1,4 +1,4 @@
-## Index Search System Microservice
+# Index Search System Microservice
 ## Description
 
 The Index Seach System is a microservice designed to search through high volumes of stored data efficiently. It acts as a middle layer to connect
@@ -99,9 +99,7 @@ If the request is missing required fields (like action or table) or if the upstr
 ```
 
 ### Request/Response Examples
-
-#### Basic search
-This is what a search would look like in my application for my recipe browser website:
+This is what a search request/response would look like in my application for my recipe browser website:
 ```JSON
 # Requesting the first 10 recipes
 request = {
@@ -125,4 +123,34 @@ request = {
 socket.send_json(request)
 response = socket.recv_json()
 ```
-## TODO UML Sequence Diagram
+## UML Sequence Diagram
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Index Search System<br/>(Port 5554)
+    participant D as Database Service<br/>(Port 5556)
+
+    Note over C, S: Communication via ZMQ REQ/REP
+    C->>S: send_json({"action": "search", "table": "recipes", ...})
+    activate S
+    
+    Note right of S: validate_request()<br/>(Checks for 'action' & 'table')
+    
+    S->>D: send_json({"action": "select", "table": "recipes", "filters": {...}})
+    activate D
+    Note left of D: Database Query Execution
+    D-->>S: recv_json({"status": "success", "data": {"rows": [...]}})
+    deactivate D
+
+    rect rgb(240, 240, 240)
+        Note right of S: Internal Processing:
+        Note right of S: 1. Calculate start/end indices
+        Note right of S: 2. Slice rows[start:end]
+        Note right of S: 3. Calculate total_pages
+    end
+
+    S-->>C: recv_json({"status": "success", "data": [...], "pagination": {...}})
+    deactivate S
+    Note over C, S: Client receives paginated results
+```
